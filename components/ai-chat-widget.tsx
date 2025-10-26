@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { useChat } from "ai/react"
+import { useChat } from "@ai-sdk/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageCircle, X, Send } from "lucide-react"
