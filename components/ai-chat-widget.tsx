@@ -1,27 +1,26 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import React from "react"
+
+import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageCircle, X, Send } from "lucide-react"
-
-interface Message {
-  id: string
-  role: "user" | "assistant"
-  content: string
-}
+import { useRef, useEffect } from "react"
 
 export function AIChatWidget() {
-  const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your English learning assistant. How can I help you today?",
-    },
-  ])
-  const [input, setInput] = useState("")
-  const [loading, setLoading] = useState(false)
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: "/api/ai-chat",
+    initialMessages: [
+      {
+        id: "1",
+        role: "assistant",
+        content: "Hello! I'm your English learning assistant. How can I help you today?",
+      },
+    ],
+  })
+
+  const [isOpen, setIsOpen] = React.useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -31,50 +30,6 @@ export function AIChatWidget() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
-
-  const handleSendMessage = async () => {
-    if (!input.trim()) return
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setLoading(true)
-
-    try {
-      const response = await fetch("/api/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-        }),
-      })
-
-      const data = await response.json()
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.message || "I couldn't generate a response. Please try again.",
-      }
-
-      setMessages((prev) => [...prev, assistantMessage])
-    } catch (error) {
-      console.error("[v0] Error sending message:", error)
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
-      }
-      setMessages((prev) => [...prev, errorMessage])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <>
@@ -108,7 +63,7 @@ export function AIChatWidget() {
                   </div>
                 </div>
               ))}
-              {loading && (
+              {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-gray-200 text-gray-900 px-4 py-2 rounded-lg rounded-bl-none">
                     <div className="flex gap-1">
@@ -129,25 +84,24 @@ export function AIChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex gap-2">
               <input
                 type="text"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                onChange={handleInputChange}
                 placeholder="Ask me anything..."
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-sm"
-                disabled={loading}
+                disabled={isLoading}
               />
               <Button
-                onClick={handleSendMessage}
-                disabled={loading || !input.trim()}
+                type="submit"
+                disabled={isLoading || !input.trim()}
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700"
               >
                 <Send className="w-4 h-4" />
               </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
       )}

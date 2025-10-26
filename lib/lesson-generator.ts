@@ -1,4 +1,5 @@
-import { callGroq } from "./groq-client"
+import { groq } from "@ai-sdk/groq"
+import { generateObject } from "ai"
 import { z } from "zod"
 
 const lessonSchema = z.object({
@@ -41,7 +42,13 @@ export async function generatePersonalizedLesson(
 
   const difficulty = difficultyMap[difficultyLevel as keyof typeof difficultyMap] || "beginner"
 
-  const prompt = `Generate a personalized English learning lesson in JSON format.
+  try {
+    console.log("[v0] Generating personalized lesson for", lessonType)
+
+    const { object } = await generateObject({
+      model: groq("mixtral-8x7b-32768"),
+      schema: lessonSchema,
+      prompt: `Generate a personalized English learning lesson.
 
 Lesson Type: ${lessonType}
 Difficulty: ${difficulty}
@@ -52,49 +59,12 @@ Create a lesson with:
 2. lessons: array with 1 lesson containing 4-5 questions
 3. Mix of question types: multiple-choice, fill-in, listening, speaking
 4. XP rewards: 10-50 points per question
-5. Clear explanations for correct answers
-
-Return ONLY valid JSON (no markdown, no extra text):
-{
-  "lessonNames": ["Topic 1", "Topic 2", "Topic 3"],
-  "lessons": [{
-    "id": "lesson-1",
-    "title": "Lesson Title",
-    "topic": "${lessonType}",
-    "difficulty": "${difficulty}",
-    "description": "Description",
-    "questions": [{
-      "id": "q1",
-      "type": "multiple-choice",
-      "question": "Question text?",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "A",
-      "explanation": "Explanation",
-      "xpReward": 20
-    }]
-  }]
-}`
-
-  try {
-    console.log("[v0] Generating personalized lesson for", lessonType)
-    const response = await callGroq([{ role: "user", content: prompt }], {
-      maxTokens: 2048,
+5. Clear explanations for correct answers`,
+      temperature: 0.7,
     })
 
-    if (!response) {
-      console.log("[v0] Groq returned null, using fallback")
-      return generateFallbackLesson(lessonType, difficultyLevel)
-    }
-
-    const jsonMatch = response.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      console.log("[v0] No JSON found in response, using fallback")
-      return generateFallbackLesson(lessonType, difficultyLevel)
-    }
-
-    const lesson = JSON.parse(jsonMatch[0]) as Lesson
     console.log("[v0] Successfully generated lesson")
-    return lesson
+    return object
   } catch (error) {
     console.error("[v0] Error generating lesson:", error)
     return generateFallbackLesson(lessonType, difficultyLevel)
@@ -102,7 +72,13 @@ Return ONLY valid JSON (no markdown, no extra text):
 }
 
 export async function generateAssessmentLesson(): Promise<Lesson> {
-  const prompt = `Generate an English proficiency assessment lesson in JSON format.
+  try {
+    console.log("[v0] Generating assessment lesson")
+
+    const { object } = await generateObject({
+      model: groq("mixtral-8x7b-32768"),
+      schema: lessonSchema,
+      prompt: `Generate an English proficiency assessment lesson.
 
 Create an assessment with:
 1. lessonNames: ["Grammar", "Vocabulary", "Writing", "Speaking", "Listening"]
@@ -110,49 +86,12 @@ Create an assessment with:
 3. Questions covering all skill areas
 4. Mix of all question types
 5. Each question worth 10 XP
-6. Questions designed to identify weaknesses
-
-Return ONLY valid JSON (no markdown, no extra text):
-{
-  "lessonNames": ["Grammar", "Vocabulary", "Writing", "Speaking", "Listening"],
-  "lessons": [{
-    "id": "assessment-1",
-    "title": "English Proficiency Assessment",
-    "topic": "assessment",
-    "difficulty": "beginner",
-    "description": "Assess your English level",
-    "questions": [{
-      "id": "q1",
-      "type": "multiple-choice",
-      "question": "Question?",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": "A",
-      "explanation": "Explanation",
-      "xpReward": 10
-    }]
-  }]
-}`
-
-  try {
-    console.log("[v0] Generating assessment lesson")
-    const response = await callGroq([{ role: "user", content: prompt }], {
-      maxTokens: 2048,
+6. Questions designed to identify weaknesses`,
+      temperature: 0.7,
     })
 
-    if (!response) {
-      console.log("[v0] Groq returned null, using fallback")
-      return generateFallbackAssessment()
-    }
-
-    const jsonMatch = response.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
-      console.log("[v0] No JSON found in response, using fallback")
-      return generateFallbackAssessment()
-    }
-
-    const lesson = JSON.parse(jsonMatch[0]) as Lesson
     console.log("[v0] Successfully generated assessment")
-    return lesson
+    return object
   } catch (error) {
     console.error("[v0] Error generating assessment:", error)
     return generateFallbackAssessment()

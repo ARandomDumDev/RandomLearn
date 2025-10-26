@@ -1,4 +1,5 @@
-import { callGroq } from "@/lib/groq-client"
+import { groq } from "@ai-sdk/groq"
+import { generateText } from "ai"
 
 export async function POST(request: Request) {
   try {
@@ -19,22 +20,14 @@ Provide personalized, encouraging feedback that:
 
 Keep it concise (2-3 sentences).`
 
-    console.log("[v0] AI Feedback - Generating feedback")
-
-    const response = await callGroq([{ role: "user", content: prompt }], {
-      maxTokens: 256,
+    const { text } = await generateText({
+      model: groq("mixtral-8x7b-32768"),
+      prompt,
       temperature: 0.7,
+      maxTokens: 256,
     })
 
-    if (!response) {
-      console.log("[v0] AI Feedback - Groq unavailable, using fallback")
-      return Response.json({
-        feedback: `Good try! The correct answer is "${correctAnswer}". ${explanation} Keep practicing!`,
-      })
-    }
-
-    console.log("[v0] AI Feedback - Feedback generated successfully")
-    return Response.json({ feedback: response })
+    return Response.json({ feedback: text })
   } catch (error) {
     console.error("[v0] AI Feedback Error:", error)
     return Response.json({
